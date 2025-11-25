@@ -141,7 +141,13 @@ def brand_shares(df: pd.DataFrame) -> pd.DataFrame:
     return grouped
 
 
-def pie_chart(data: pd.DataFrame, label_col: str, value_col: str, title: str):
+def pie_chart(
+    data: pd.DataFrame,
+    label_col: str,
+    value_col: str,
+    title: str,
+    color_scale: alt.Scale | None = None,
+):
     if data.empty or data[value_col].sum() == 0:
         st.info(f"No data to display for {title}.")
         return
@@ -151,7 +157,11 @@ def pie_chart(data: pd.DataFrame, label_col: str, value_col: str, title: str):
         .mark_arc(innerRadius=60)
         .encode(
             theta=alt.Theta(field=value_col, type="quantitative"),
-            color=alt.Color(f"{label_col}:N", legend=alt.Legend(title=label_col)),
+            color=alt.Color(
+                f"{label_col}:N",
+                legend=alt.Legend(title=label_col),
+                scale=color_scale,
+            ),
             tooltip=[label_col, alt.Tooltip(value_col, format=",.0f")],
         )
         .properties(title=title)
@@ -181,10 +191,21 @@ def layout_top50_sections(df_filtered: pd.DataFrame):
     col1, col2 = st.columns(2)
     top50_rev_shares = type_shares(top50_rev)
     top50_units_shares = type_shares(top50_units)
+    type_domain = sorted(
+        pd.unique(
+            pd.concat(
+                [top50_rev_shares["Type"], top50_units_shares["Type"]],
+                ignore_index=True,
+            )
+        )
+    )
+    type_color_scale = alt.Scale(domain=type_domain, scheme="category20") if type_domain else None
     with col1:
-        pie_chart(top50_rev_shares, "Type", "Revenue", "Top 50 Revenue Share by Type")
+        pie_chart(top50_rev_shares, "Type", "Revenue", "Top 50 Revenue Share by Type", color_scale=type_color_scale)
     with col2:
-        pie_chart(top50_units_shares, "Type", "Units", "Top 50 Units Share by Type")
+        pie_chart(
+            top50_units_shares, "Type", "Units", "Top 50 Units Share by Type", color_scale=type_color_scale
+        )
 
 
 def top_brands_revenue_chart(df: pd.DataFrame):
